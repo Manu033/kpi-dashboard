@@ -94,3 +94,34 @@ export async function getDefectEscape(req, res) {
     res.json({ kpi: 'defect_escape', unit: '%', value: Number(pct.toFixed(2)) });
   } catch (e) { console.error(e); res.status(500).json({ error: 'defect_escape_query_failed' }); }
 }
+
+// Lista de batches existentes
+export async function getBatches(_req, res) {
+  try {
+    const sql = `SELECT batch_number, total_delivered, total_bugs_escaped, escape_rate_pct FROM batches ORDER BY batch_number`;
+    const [rows] = await pool.execute(sql);
+    res.json(rows);
+  } catch (e) { console.error(e); res.status(500).json({ error: 'get_batches_failed' }); }
+}
+
+// Info de un batch específico (fechas y totales)
+export async function getBatchInfo(req, res) {
+  const batch = Number(req.query.batch || 0);
+  if (!batch) return res.status(400).json({ error: 'batch_required' });
+  try {
+    const sqlBatch = `SELECT batch_number, total_delivered, total_bugs_escaped, escape_rate_pct FROM batches WHERE batch_number = ?`;
+    const [bRows] = await pool.execute(sqlBatch, [batch]);
+    const sqlRange = `SELECT MIN(created_at) AS first_created, MAX(deployed_at) AS last_deployed FROM tickets WHERE batch_number = ?`;
+    const [rRows] = await pool.execute(sqlRange, [batch]);
+    res.json({ batch: bRows[0] || null, range: rRows[0] || null });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'get_batch_info_failed' }); }
+}
+
+// Serie de defect escape (por batch)
+export async function getDefectEscapeSeries(_req, res) {
+  try {
+    const sql = `SELECT batch_number, total_delivered, total_bugs_escaped, escape_rate_pct FROM batches ORDER BY batch_number`;
+    const [rows] = await pool.execute(sql);
+    res.json(rows);
+  } catch (e) { console.error(e); res.status(500).json({ error: 'defect_escape_series_failed' }); }
+}
