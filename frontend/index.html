@@ -20,15 +20,16 @@
     <!-- Filtros -->
     <form id="filters" class="row g-3 mb-4">
       <div class="col-auto">
-        <label class="form-label">Desde</label>
-        <input type="date" id="from" class="form-control"/>
-      </div>
-      <div class="col-auto">
-        <label class="form-label">Hasta</label>
-        <input type="date" id="to" class="form-control"/>
+        <label class="form-label">Batch</label>
+        <select id="batchFilter" class="form-control">
+          <option value="">Todos los batches</option>
+        </select>
       </div>
       <div class="col-auto align-self-end">
         <button class="btn btn-primary">🔄 Actualizar</button>
+      </div>
+      <div class="col-auto align-self-end">
+        <span class="text-muted small" id="batchDateRange"></span>
       </div>
     </form>
 

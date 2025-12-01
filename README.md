@@ -16,15 +16,6 @@ Dashboard interactivo para monitorear 2 objetivos clave según DORA Metrics:
 
 ### 1. Configurar Base de Datos
 
-```bash
-# Windows
-.\migrate-db.bat (local)
-
-# Linux/Mac
-./migrate-db.sh localhost
-```
-
-O manualmente:
 ```sql
 -- Abrir SQL Server Management Studio
 -- Ejecutar scripts en orden:
@@ -37,16 +28,38 @@ O manualmente:
 ```bash
 cd backend
 npm install
+```
 
-# Crear .env (copiar de .env.example si existe)
-# Editar variables:
-DB_HOST=localhost
-DB_USER=sa
-DB_PASSWORD=<tu_password>
-DB_NAME=kpi_softprod
+#### 2.1 Crear archivo `.env`
+
+El backend necesita credenciales de SQL Server. Se incluye un `.env` básico. **Edítalo con tus valores:**
+
+```env
+SQLSERVER_HOST=localhost
+SQLSERVER_PORT=1433
+SQLSERVER_USER=sa
+SQLSERVER_PASSWORD=YourPassword123!
+SQLSERVER_DB=kpi_softprod
 PORT=3001
+```
 
+**Valores a cambiar:**
+- `SQLSERVER_HOST`: Tu servidor SQL Server (localhost, IP, o nombre)
+- `SQLSERVER_USER`: Usuario SQL Server (por defecto: `sa`)
+- `SQLSERVER_PASSWORD`: Contraseña del usuario
+- `SQLSERVER_DB`: Nombre de BD (debe ser `kpi_softprod`)
+
+👉 Ver `CONFIGURAR_ENV.md` para más detalles y solucionar errores de conexión.
+
+#### 2.2 Iniciar Backend
+
+```bash
 npm run dev
+```
+
+**Salida esperada:**
+```
+API listening on http://localhost:3001
 ```
 
 ### 3. Abrir Frontend

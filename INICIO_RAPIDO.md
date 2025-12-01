@@ -28,21 +28,41 @@ cd "c:\Users\Usuario\Desktop\2025\Segundo Cuatrimestre\Informatica Industrial\fi
 
 ## PASO 2: Iniciar Backend Node.js
 
+### 2.1 Configura el archivo `.env`
+
+El archivo `backend/.env` ya existe con valores por defecto. **Edítalo con tus credenciales SQL Server:**
+
+```env
+SQLSERVER_HOST=localhost
+SQLSERVER_PORT=1433
+SQLSERVER_USER=sa
+SQLSERVER_PASSWORD=YourPassword123!
+SQLSERVER_DB=kpi_softprod
+PORT=3001
+```
+
+**Cambios necesarios:**
+- `SQLSERVER_HOST`: Tu servidor (localhost, IP, o nombre)
+- `SQLSERVER_USER`: Usuario SQL Server (generalmente `sa`)
+- `SQLSERVER_PASSWORD`: Contraseña real del usuario
+- `SQLSERVER_DB`: Debe ser `kpi_softprod` (lo creó schema.sql)
+
+📖 Ver `CONFIGURAR_ENV.md` si necesitas ayuda.
+
+### 2.2 Instala dependencias e inicia
+
 ```bash
-cd "c:\Users\Usuario\Desktop\2025\Segundo Cuatrimestre\Informatica Industrial\final\kpi-dashboard\backend"
+cd backend
 npm install
 npm run dev
 ```
 
-**Salida esperada**:
+**Salida esperada:**
 ```
-Server running on port 3001
+API listening on http://localhost:3001
 ```
 
-**Verificar**: 
-```bash
-curl http://localhost:3001/api/metrics/lead-time
-```
+Si ves error sobre "config.server", es que `.env` no está configurado correctamente. Ver `CONFIGURAR_ENV.md`.
 
 ---
 

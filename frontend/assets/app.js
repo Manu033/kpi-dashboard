@@ -10,13 +10,57 @@ async function fetchJSON(url) {
   return res.json();
 }
 
-function currentRange() {
-  const from = document.getElementById('from').value;
-  const to = document.getElementById('to').value;
-  const qs = [];
-  if (from) qs.push(`from=${from}`);
-  if (to) qs.push(`to=${to}`);
-  return qs.length ? `?${qs.join('&')}` : '';
+// Cargar batches dinámicamente
+async function loadBatches() {
+  try {
+    const batches = await fetchJSON(`${API}/batches`);
+    const select = document.getElementById('batchFilter');
+    
+    // Limpiar opciones existentes excepto la primera (Todos los batches)
+    while (select.options.length > 1) {
+      select.remove(1);
+    }
+    
+    // Agregar cada batch como opción
+    batches.forEach(batch => {
+      const option = document.createElement('option');
+      option.value = batch.id;
+      option.textContent = batch.label;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Error loading batches:', err);
+  }
+}
+
+function currentFilter() {
+  const batch = document.getElementById('batchFilter')?.value;
+  if (batch) return `?batch=${batch}`;
+  return '';
+}
+
+async function updateBatchDateRange() {
+  const batch = document.getElementById('batchFilter')?.value;
+  const elem = document.getElementById('batchDateRange');
+  
+  if (!batch) {
+    elem.textContent = '';
+    return;
+  }
+  
+  try {
+    const info = await fetchJSON(`${API}/batch-info?batch=${batch}`);
+    if (info.first_ticket_date && info.last_ticket_date) {
+      const from = new Date(info.first_ticket_date).toLocaleDateString('es-ES');
+      const to = new Date(info.last_ticket_date).toLocaleDateString('es-ES');
+      elem.textContent = `📅 ${from} al ${to}`;
+    } else {
+      elem.textContent = '';
+    }
+  } catch (err) {
+    console.error('Error fetching batch info:', err);
+    elem.textContent = '';
+  }
 }
 
 // Función para obtener color según benchmark
@@ -34,7 +78,7 @@ function getDefectColor(pct, status) {
 
 async function loadLeadTime() {
   // 1) valor promedio
-  const v = await fetchJSON(`${API}/lead-time${currentRange()}`);
+  const v = await fetchJSON(`${API}/lead-time${currentFilter()}`);
   const color = getLeadTimeColor(v.value);
   
   const elem = document.getElementById('leadTimeValue');
@@ -51,11 +95,26 @@ async function loadLeadTime() {
   statusBadge.textContent = color.text;
   statusBadge.style.color = color.bg;
 
-  // 2) serie por ticket
-  const series = await fetchJSON(`${API}/lead-time/by-ticket${currentRange()}`);
-
-  const labels = series.map(r => r.key_code);
-  const data   = series.map(r => Number(r.lead_time_days?.toFixed(2)));
+  // 2) Agrupar por categoría de lead time
+  const series = await fetchJSON(`${API}/lead-time/by-ticket${currentFilter()}`);
+  
+  // Contar tickets en cada categoría
+  let elite = 0, intermediate = 0, critical = 0;
+  for (const r of series) {
+    const days = Number(r.lead_time_days || 0);
+    if (days <= 3) elite++;
+    else if (days <= 7) intermediate++;
+    else critical++;
+  }
+  
+  const total = series.length || 1;
+  const labels = ['Élite (≤3d)', 'Intermedio (3-7d)', 'Crítico (>7d)'];
+  const data = [elite, intermediate, critical];
+  const percentages = [
+    ((elite / total) * 100).toFixed(1),
+    ((intermediate / total) * 100).toFixed(1),
+    ((critical / total) * 100).toFixed(1)
+  ];
 
   if (leadTimeChart) leadTimeChart.destroy();
   leadTimeChart = new Chart(document.getElementById('leadTimeChart'), {
@@ -64,14 +123,10 @@ async function loadLeadTime() {
       labels, 
       datasets: [
         { 
-          label: 'Lead Time (días)', 
+          label: 'Tickets', 
           data,
-          backgroundColor: data.map(d => {
-            if (d <= 3) return '#10b981';
-            if (d <= 7) return '#f59e0b';
-            return '#ef4444';
-          }),
-          borderColor: '#e5e7eb',
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+          borderColor: ['#059669', '#d97706', '#dc2626'],
           borderWidth: 1,
           borderRadius: 4
         }
@@ -84,7 +139,7 @@ async function loadLeadTime() {
       scales: { 
         x: { 
           beginAtZero: true,
-          ticks: { callback: v => v + 'd' }
+          ticks: { callback: v => v }
         }
       },
       plugins: {
@@ -92,17 +147,19 @@ async function loadLeadTime() {
         tooltip: {
           callbacks: {
             label: (item) => {
-              const days = item.parsed.x;
-              const status = days <= 3 ? 'Élite' : days <= 7 ? 'Intermedio' : 'Bajo';
-              return `${days} días (${status})`;
+              const idx = item.dataIndex;
+              return `${data[idx]} tickets (${percentages[idx]}%)`;
             }
           }
         },
         datalabels: {
           anchor: 'end',
           align: 'right',
-          formatter: (v) => v + 'd',
-          font: { size: 10, weight: 'bold' }
+          formatter: (v, ctx) => {
+            const idx = ctx.dataIndex;
+            return `${v} (${percentages[idx]}%)`;
+          },
+          font: { size: 11, weight: 'bold' }
         }
       }
     }
@@ -111,7 +168,7 @@ async function loadLeadTime() {
 
 async function loadDeployFrequency() {
   const TARGET = 1;
-  const rows = await fetchJSON(`${API}/deploy-frequency${currentRange()}`);
+  const rows = await fetchJSON(`${API}/deploy-frequency`);
 
   const labels = rows.map(r => {
     const [year, week] = String(r.yw).split('-');
@@ -200,7 +257,7 @@ async function loadDeployFrequency() {
 }
 
 async function loadDefectEscape() {
-  const v = await fetchJSON(`${API}/defect-escape`);
+  const v = await fetchJSON(`${API}/defect-escape${currentFilter()}`);
   const color = getDefectColor(v.value, v.status);
   
   const elem = document.getElementById('defectEscapeValue');
@@ -321,13 +378,17 @@ async function loadAll() {
 
 document.getElementById('filters').addEventListener('submit', (e) => {
   e.preventDefault();
+  updateBatchDateRange();
   loadAll().catch(console.error);
 });
 
-// Prefill rango último mes
-const today = new Date();
-const from = new Date(Date.now() - 30*24*3600*1000);
-document.getElementById('from').value = fmtDate(from);
-document.getElementById('to').value = fmtDate(today);
+// Event listener para actualizar fechas cuando se cambia el batch
+document.getElementById('batchFilter').addEventListener('change', updateBatchDateRange);
+
+// Cargar batches al iniciar
+loadBatches();
+
+// Inicializar batch por defecto
+document.getElementById('batchFilter').value = '';
 
 loadAll().catch(console.error);
