@@ -1,5 +1,7 @@
 # 📊 KPI Dashboard - Tablero de Control de Producción de Software
 
+> Esta versión incluye adaptación a **MySQL** para despliegue en hosting cPanel / phpMyAdmin. Consulta sección "MySQL & cPanel" al final.
+
 Dashboard interactivo para monitorear 2 objetivos clave según DORA Metrics:
 
 1. **Lead Time** ⏱️ - Tiempo desde inicio hasta producción
@@ -8,6 +10,8 @@ Dashboard interactivo para monitorear 2 objetivos clave según DORA Metrics:
 ---
 
 ## 🚀 Quick Start
+
+> Ahora soporta dos modos: **SQL Server (original)** y **MySQL (hosting)**. Para hosting común, usa MySQL.
 
 ### Requisitos
 - **Node.js** v16+
@@ -310,6 +314,61 @@ SELECT * FROM dbo.batches;
 ```
 
 ---
+
+## 🐬 MySQL & cPanel Deployment
+
+### 1. Crear Base de Datos en cPanel
+1. En cPanel: MySQL Databases → crear base `kpi_softprod`.
+2. Crear usuario y asignarlo con todos los privilegios.
+3. En phpMyAdmin seleccionar la base y usar "Import" para subir `sql/mysql_schema.sql` y luego `sql/mysql_seed.sql`.
+
+### 2. Configurar Backend (si tu hosting soporta Node.js)
+1. Comprimir carpeta `backend/` en zip y subir vía File Manager.
+2. En cPanel: Setup Node.js App (si disponible):
+   - Application root: `/backend`
+   - Application startup file: `src/index.js`
+   - Node version: la más cercana a 18/20
+3. Variables de entorno:
+```
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=TU_USUARIO
+MYSQL_PASSWORD=TU_PASSWORD
+MYSQL_DB=kpi_softprod
+PORT=3001
+SERVE_FRONTEND=true
+```
+4. Ejecutar `npm install` desde terminal de cPanel o interfaz.
+5. Reiniciar la app Node.
+
+Si tu hosting NO soporta Node.js:
+- Alternativa A: Deploy sólo frontend en `public_html/` y hostear backend en un servicio externo (Render, Railway, Fly.io, etc.). Ajustar `API` en `frontend/assets/app.js` a la URL pública del backend.
+- Alternativa B (más trabajo): Reescribir endpoints en PHP usando PDO MySQL.
+
+### 3. Servir el Frontend
+Si usas la opción `SERVE_FRONTEND=true`, Express servirá archivos de `frontend/`. URL final de API: `https://tu-dominio.com/api/metrics/lead-time`.
+
+Si separas frontend:
+1. Subir contenido de `frontend/` a `public_html/kpi/`.
+2. Editar `frontend/assets/app.js`:
+```javascript
+const API = 'https://tu-dominio.com/api/metrics';
+```
+
+### 4. Verificar
+```bash
+curl https://tu-dominio.com/api/health
+curl https://tu-dominio.com/api/metrics/lead-time
+```
+
+### 5. Seguridad Básica
+- Agregar encabezados: usar paquete `helmet` en backend.
+- Limitar CORS: `app.use(cors({ origin: 'https://tu-dominio.com' }))`.
+- Asegurar `.env` fuera de `public_html`.
+
+### 6. Mantenimiento
+- Backups BD: desde phpMyAdmin (Export) semanal.
+- Logs: agregar middleware para registrar errores.
 
 ## 📚 Referencias
 

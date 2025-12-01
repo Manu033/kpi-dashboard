@@ -1,20 +1,18 @@
-import sql from 'mssql';
+import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const config = {
-  server: process.env.SQLSERVER_HOST,
-  port: Number(process.env.SQLSERVER_PORT || 1433),
-  user: process.env.SQLSERVER_USER,
-  password: process.env.SQLSERVER_PASSWORD,
-  database: process.env.SQLSERVER_DB,
-  options: {
-    trustServerCertificate: true,  // útil en local
-    enableArithAbort: true
-  },
-  pool: { max: 10, min: 0, idleTimeoutMillis: 30000 }
-};
+// MySQL connection pool configuration (env vars in .env.example)
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST || 'localhost',
+  port: Number(process.env.MYSQL_PORT || 3306),
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DB,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  timezone: 'Z' // store dates in UTC
+});
 
-export const pool = new sql.ConnectionPool(config);
-export const poolConnect = pool.connect();
-export { sql };
+export { pool };
