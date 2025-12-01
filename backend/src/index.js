@@ -13,7 +13,7 @@ app.use(express.json());
 // Optional: serve frontend static files when deploying both on same Node app
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 if (process.env.SERVE_FRONTEND === 'true') {
-  app.use(express.static(path.join(__dirname, '../../frontend')));
+  app.use(express.static(path.join(__dirname, '../frontend')));
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
