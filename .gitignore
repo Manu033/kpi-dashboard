@@ -1,0 +1,65 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Runtime / environment
+.env
+.env.*
+.local
+
+# Build output
+dist/
+build/
+out/
+
+# Coverage
+coverage/
+nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors and IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Test output
+test-results/
+
+# Ignore node_modules everywhere
+**/node_modules/
+
+# SSH keys, certificates
+*.pem
+*.key
+
+# Windows thumbnail cache files
+Thumbs.db
+
+# Optional: package lockfiles are usually tracked. Do NOT ignore `package-lock.json` unless you have a reason.

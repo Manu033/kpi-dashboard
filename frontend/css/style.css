@@ -1,0 +1,10 @@
+  /* Caja para controlar la altura de los charts */
+  .chart-box {
+    position: relative;
+    height: 240px;        /* alto fijo para móviles */
+  }
+  @media (min-width: 992px) {
+    .chart-box { height: 280px; }  /* un poco más alto en desktop */
+  }
+  /* Para que el value no empuje el canvas */
+  .kpi-value { margin: 0 0 .5rem 0; line-height: 1; }
