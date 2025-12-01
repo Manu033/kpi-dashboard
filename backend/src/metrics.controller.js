@@ -106,21 +106,71 @@ export async function getDeployFrequency(req, res) {
 }
 
 
-// KPI 3: Tasa de defectos escapados = bugs en prod / entregas totales (%)
+// KPI 3: Tasa de defectos escapados POR LOTE = bugs en prod / 30 ítems (%)
+// Se calcula por cada lote de 30 ítems entregados
 export async function getDefectEscape(req, res) {
   await poolConnect;
-  const {from, to} = getRange(req.query);
   const r = await pool.request()
-    .input('from', sql.DateTime2, from)
-    .input('to',   sql.DateTime2, to)
+    .query(`
+      SELECT TOP 1
+        batch_number,
+        total_delivered,
+        total_bugs_escaped,
+        CASE 
+          WHEN total_delivered > 0 THEN CAST((total_bugs_escaped * 100.0 / total_delivered) AS FLOAT)
+          ELSE 0
+        END AS escape_rate
+      FROM dbo.batches
+      WHERE closed_at IS NOT NULL
+      ORDER BY batch_number DESC
+    `);
+  
+  if (r.recordset.length === 0) {
+    return res.json({ 
+      kpi: 'defect_escape', 
+      unit: '%', 
+      value: 0,
+      batch_number: null,
+      status: 'healthy'
+    });
+  }
+  
+  const latest = r.recordset[0];
+  const rate = Number(latest.escape_rate || 0);
+  
+  // Clasificación según benchmark
+  let status = 'elite';
+  if (rate > 5) status = 'intermediate';
+  if (rate > 15) status = 'critical';
+  
+  res.json({ 
+    kpi: 'defect_escape', 
+    unit: '%', 
+    value: Number(rate.toFixed(2)),
+    batch_number: latest.batch_number,
+    status: status
+  });
+}
+
+// Serie: Tasa de defectos por lote (histórico)
+export async function getDefectEscapeSeries(req, res) {
+  await poolConnect;
+  const r = await pool.request()
     .query(`
       SELECT
-        SUM(CASE WHEN [type]='bug' AND in_production=1 AND deployed_at BETWEEN @from AND @to THEN 1 ELSE 0 END) AS prod_bugs,
-        SUM(CASE WHEN [status]='done' AND deployed_at BETWEEN @from AND @to THEN 1 ELSE 0 END) AS total_delivered
-      FROM dbo.tickets
+        batch_number,
+        total_delivered,
+        total_bugs_escaped,
+        CASE 
+          WHEN total_delivered > 0 THEN CAST((total_bugs_escaped * 100.0 / total_delivered) AS FLOAT)
+          ELSE 0
+        END AS escape_rate,
+        closed_at
+      FROM dbo.batches
+      WHERE closed_at IS NOT NULL
+      ORDER BY batch_number
     `);
-  const prod_bugs = Number(r.recordset[0]?.prod_bugs || 0);
-  const total_delivered = Number(r.recordset[0]?.total_delivered || 0);
-  const pct = total_delivered > 0 ? (prod_bugs / total_delivered) * 100 : 0;
-  res.json({ kpi: 'defect_escape', unit: '%', value: Number(pct.toFixed(2)) });
+  
+  res.json(r.recordset);
 }
+
